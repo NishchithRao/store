@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator zod {
+  provider = "zod-prisma-types"
+}
+
+enum ROLE {
+  ADMIN
+  STORE_ADMIN
+  USER
+}
+
+enum STATUS {
+  CREATED
+  PENDING
+  COMPLETED
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Order     Order[]
+  role      ROLE     @default(USER)
+  Cart      Cart[]
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  title         String
+  price         Float
+  InventoryItem InventoryItem[]
+  Collection    Collection?     @relation(fields: [collectionId], references: [id])
+  collectionId  String?
+}
+
+model Store {
+  id        String     @id @default(cuid())
+  Inventory Inventory?
+  title     String
+}
+
+model Inventory {
+  id      String          @id @default(cuid())
+  store   Store           @relation(fields: [storeId], references: [id])
+  storeId String          @unique
+  items   InventoryItem[]
+}
+
+model InventoryItem {
+  product     Product    @relation(fields: [productId], references: [id])
+  productId   String     @id @unique
+  quantity    Float
+  Inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  inventoryId String?
+  CartItem    CartItem[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  cart          Cart     @relation(fields: [cartId], references: [id])
+  cartId        String
+  status        STATUS   @default(CREATED)
+  transactionId String?
+  createdAt     DateTime @default(now())
+}
+
+model Cart {
+  id     String     @id @default(cuid())
+  user   User       @relation(fields: [userId], references: [id])
+  userId String
+  items  CartItem[]
+  Order  Order[]
+}
+
+model CartItem {
+  id                     String        @id @default(cuid())
+  quantity               Float
+  Cart                   Cart?         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId                 String?
+  inventoryItem          InventoryItem @relation(fields: [inventoryItemProductId], references: [productId])
+  inventoryItemProductId String
+}
+
+model Collection {
+  id        String    @id @default(cuid())
+  title     String
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
