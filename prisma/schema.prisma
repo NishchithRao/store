@@ -46,8 +46,8 @@ model Product {
   title         String
   price         Float
   InventoryItem InventoryItem[]
-  Collection    Collection?     @relation(fields: [collectionId], references: [id])
-  collectionId  String?
+  collections   Collection[]
+  Rating        Rating[]
 }
 
 model Store {
@@ -105,4 +105,14 @@ model Collection {
   title     String
   createdAt DateTime  @default(now())
   products  Product[]
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  rating    Int
+  createdAt DateTime @default(now())
+  comment   String
+  productId String
 }
