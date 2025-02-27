@@ -1,7 +1,7 @@
 import { publicProcedure, router } from "../trpc";
 
 import { isAuthorized } from "../user/utils";
-import { prisma } from "src/prisma";
+import { prisma } from "../prisma";
 import { z } from "zod";
 
 export const orderRouter = router({

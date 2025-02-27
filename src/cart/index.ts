@@ -3,7 +3,7 @@ import { publicProcedure, router } from "../trpc";
 import { PrismaClientValidationError } from "@prisma/client/runtime/library";
 import { TRPCError } from "@trpc/server";
 import { isAuthorized } from "../user/utils";
-import { prisma } from "src/prisma";
+import { prisma } from "../prisma";
 import { z } from "zod";
 
 export const cartRouter = router({
