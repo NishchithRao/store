@@ -1,3 +1,4 @@
+import { disconnectRedis, initRedis } from "./redis";
 import { publicProcedure, router } from "./trpc";
 
 import { cartRouter } from "./cart";
@@ -26,10 +27,10 @@ const appRouter = router({
 // NOT the router itself.
 export type AppRouter = typeof appRouter;
 
-const sever = createHTTPServer({
+const server = createHTTPServer({
   router: appRouter,
   createContext: context,
-  middleware: cors({ origin: process.env.FRONTEND_URL }),
+  middleware: cors({ origin: process.env.FRONTEND_URL, credentials: true }),
   responseMeta: ({ ctx, type, errors }) => {
     // checking that no procedures errored
     const allOk = errors.length === 0;
@@ -48,6 +49,11 @@ const sever = createHTTPServer({
   },
 });
 
-sever.listen(3000, () => {
+server.listen(3000, () => {
   console.log("server is running on port 3000");
+  initRedis();
+});
+
+server.on("close", () => {
+  disconnectRedis();
 });
