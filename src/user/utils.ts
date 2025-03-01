@@ -24,16 +24,18 @@ const verifyToken = (token: string, secret: string) => {
   return verify(token, secret);
 };
 
-const regenerateAccessToken = (refreshToken: string) => {
+const regenerateAccessToken = async (refreshToken: string) => {
   const parsedRefreshToken = verifyToken(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET as string
   );
   if (typeof parsedRefreshToken === "object" && parsedRefreshToken.userId) {
-    return createAccessToken(
-      parsedRefreshToken.userId,
-      parsedRefreshToken.role
-    );
+    const user = await prisma.user.findUnique({
+      where: {
+        id: parsedRefreshToken.userId,
+      },
+    });
+    return createAccessToken(parsedRefreshToken.userId, user?.role || "USER");
   }
   return null;
 };
@@ -55,7 +57,12 @@ const signIn = async (
   }
   const isPasswordValid = await bcrypt.compare(opts.password, user.password);
   if (!isPasswordValid) {
-    return { code: "UNAUTHORIZED", message: "password not valid" };
+    return {
+      code: "BAD_REQUEST",
+      message: JSON.stringify([
+        { validation: "password", message: "password not valid" },
+      ]),
+    };
   }
   const accessToken = createAccessToken(user.id, user.role);
   const refreshToken = createRefreshToken(user.id);
@@ -80,6 +87,7 @@ const isStoreEditor: Parameters<typeof publicProcedure.use>[0] = (opts) => {
 const isProductEditor: Parameters<typeof publicProcedure.use>[0] = (opts) => {
   const PRODUCT_EDITORS = ["ADMIN"];
   if (PRODUCT_EDITORS.includes(opts.ctx.role)) {
+    console.log(opts.path, 900);
     return opts.next();
   }
   throw new TRPCError({ code: "UNAUTHORIZED", message: "unauthorized role" });
