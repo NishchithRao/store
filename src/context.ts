@@ -6,7 +6,7 @@ import { verifyToken } from "./user/utils";
 const cookieOptions: SetOption = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  sameSite: "none",
   path: "/",
 };
 
@@ -16,7 +16,11 @@ export const context = (options: CreateHTTPContextOptions) => {
   const cookies = new Cookies(req, res, cookieOptions);
 
   const token =
-    cookies.get("access-token") || req.headers.authorization?.split(" ")[1];
+    cookies.get("access-token") ||
+    req.headers["set-cookie"]
+      ?.find((item) => item.startsWith("access-token"))
+      ?.split("=")[1] ||
+    req.headers.authorization?.split(" ")[1];
 
   try {
     if (token) {
