@@ -17,6 +17,18 @@ export const storeRouter = router({
       const store = await prisma.store.create({ data: input });
       return store;
     }),
+  delete: publicProcedure
+    .use(isAuthorized)
+    .use(isProductEditor)
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const store = await prisma.store.delete({ where: { id: input.id } });
+      return store;
+    }),
   list: publicProcedure
     .use(isAuthorized)
     .use(isProductEditor)
