@@ -45,6 +45,7 @@ model Product {
   id            String          @id @default(cuid())
   title         String
   price         Float
+  images        String[]
   InventoryItem InventoryItem[]
   collections   Collection[]
   Rating        Rating[]
