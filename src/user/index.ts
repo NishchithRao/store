@@ -1,3 +1,4 @@
+import { getRedisItem, saveItemToRedis } from "../redis";
 import { isAuthorized, regenerateAccessToken, signIn } from "./utils";
 import { publicProcedure, router } from "./../trpc";
 
@@ -27,12 +28,22 @@ export const userRouter = router({
       ctx.setCookie?.("refresh-token", data.refreshToken);
       return data;
     }),
+  profile: publicProcedure.use(isAuthorized).query(async ({ ctx }) => {
+    const savedItem = await getRedisItem(["user", ctx.userID].join(":"));
+    if (savedItem) return savedItem;
+    const user = await prisma.user.findUnique({
+      where: {
+        id: ctx.userID,
+      },
+    });
+    if (user) await saveItemToRedis(["user", ctx.userID].join(":"), user);
+    return user;
+  }),
   refreshToken: publicProcedure
     .input(z.object({ refreshToken: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const data = regenerateAccessToken(input.refreshToken);
+      const data = await regenerateAccessToken(input.refreshToken);
       if (data) {
-        console.log(ctx, 222);
         ctx.setCookie?.("access-token", data);
         return data;
       }
@@ -49,7 +60,7 @@ export const userRouter = router({
         name: z.string().min(3, "Name must be at least 3 characters"),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const encryptedPassword = await bcrypt.hash(input.password, 10);
       const existingUser = await prisma.user.findUnique({
         where: {
@@ -62,14 +73,20 @@ export const userRouter = router({
           message: "email already exists",
         });
       }
-      const user = await prisma.user.create({
+      await prisma.user.create({
         data: {
           email: input.email,
           password: encryptedPassword,
           name: input.name,
         },
       });
-      return user;
+      const data = await signIn(input);
+      if ("code" in data) {
+        throw new TRPCError({ code: data.code, message: data.message });
+      }
+      ctx.setCookie?.("access-token", data.accessToken);
+      ctx.setCookie?.("refresh-token", data.refreshToken);
+      return data;
     }),
   delete: publicProcedure
     .input(z.object({ email: z.string() }))
@@ -93,7 +110,11 @@ export const userRouter = router({
       return user;
     }),
   list: publicProcedure.use(isAuthorized).query(async () => {
-    return prisma.user.findMany();
+    const savedItem = await getRedisItem("users");
+    if (savedItem) return savedItem;
+    const users = await prisma.user.findMany();
+    await saveItemToRedis("users", users);
+    return users;
   }),
   updateRole: publicProcedure
     .use(isAuthorized)
