@@ -1,6 +1,6 @@
 import { getRedisItem, saveItemToRedis } from "../redis";
 import { isAuthorized, regenerateAccessToken, signIn } from "./utils";
-import { publicProcedure, router } from "./../trpc";
+import { publicProcedure, router } from "../trpc";
 
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcryptjs";
